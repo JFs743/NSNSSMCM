@@ -77,30 +77,77 @@
 #>
 [CmdletBinding()]
 param (
-    # mutually exclusive Import, Export and Reset flags
-    [Parameter(Mandatory = $true, ParameterSetName = 'Import'), ]
-    [string[]]$Import,
+    # --- Import --- #
+    [Parameter(Mandatory = $true, ParameterSetName = 'Import')]
+    [switch]$Import,
 
+    [Parameter(ParameterSetName = 'Import', ValueFromRemainingArguments = $true)]
+    [string[]]$ImportItems,
+
+    # --- Export --- #
     [Parameter(Mandatory = $true, ParameterSetName = 'Export')]
-    [string[]]$Export,
+    [switch]$Export,
 
+    [Parameter(ParameterSetName = 'Export', ValueFromRemainingArguments = $true)]
+    [string[]]$ExportItems,
+
+    # --- Reset --- #
     [Parameter(Mandatory = $true, ParameterSetName = 'Reset')]
-    [string[]]$Reset,
+    [switch]$Reset,
 
+    [Parameter(ParameterSetName = 'Reset', ValueFromRemainingArguments = $true)]
+    [string[]]$ResetItems,
+
+    # --- Edit --- #
     [Parameter(Mandatory = $true, ParameterSetName = 'Edit')]
     [string]$Edit,
 
+    # --- New --- #
     [Parameter(Mandatory = $true, ParameterSetName = 'New')]
     [switch]$New,
+
     [Parameter(Mandatory = $true, ParameterSetName = 'New')]
     [string]$ServiceName,
+
     [Parameter(Mandatory = $true, ParameterSetName = 'New')]
     [string]$ApplicationPath,
+
     [Parameter(Mandatory = $false, ParameterSetName = 'New')]
     [string]$AppParameters
 )
 
 $mode = $($PSCmdlet.ParameterSetName)
+
+$Targets = @()
+
+switch ($mode) {
+    'Import' {
+        if ($ImportItems.Count -gt 0) {
+            $Targets = $ImportItems
+        }
+    }
+    'Export' {
+        if ($ExportItems.Count -gt 0) {
+            $Targets = $ExportItems
+        }
+    }
+    'Reset' {
+        if ($ResetItems.Count -gt 0) {
+            $Targets = $ResetItems
+        }
+    }
+    'Edit' {
+        $Targets = @($Edit)
+    }
+    'New' {
+        $Targets = @($ServiceName)
+    }
+}
+
+if ($Targets.Count -eq 0) {
+    $Targets = Get-ChildItem -Directory | Select-Object -ExpandProperty Name
+}
+
 
 $nssm_file = Get-Item "$PSScriptroot/nssm.exe"
 
@@ -112,26 +159,13 @@ Write-Host 'NSNSSMM: The Non-Sucking "Non-Sucking Service Manager" Manager.'
 
 function Export-NSNSSMM_Config {
     param (
-        [string[]]$Configs
+        [string]$Config
     )
 
-    # if $configs is an array of paths
-    if ($Configs.Count -gt 1) {
-        foreach ($config in $Configs) {
-            Export-NSNSSMM_Config -Configs $config
-        }
-        return
-    }
-    # if $configs is empty, export all configs
-    if (-not $Configs) {
-        Get-ChildItem -Path './*/nsnssmm.json' -File | ForEach-Object {
-            Export-NSNSSMM_Config -Configs $_.Directory.Name
-        }
-    }
-    Write-Host "Exporting NSNSSMM Config: $Configs"
+    Write-Host "Exporting NSNSSMM Config: $Config"
 
-    $config_path = "./$Configs/nsnssmm.json"
-    $service_name = $Configs
+    $config_path = "./$Config/nsnssmm.json"
+    $service_name = $Config
 
 
     $windowsService = Get-Service -Name $service_name -ErrorAction SilentlyContinue
@@ -205,6 +239,8 @@ function Export-NSNSSMM_Config {
             Write-Host ''
             $config_content | ConvertTo-Json | Write-Host
         }
+    } else {
+        Write-Host "Service $service_name does not exist. Skipping export."
     }
 }
 
@@ -212,72 +248,46 @@ function Export-NSNSSMM_Config {
 
 function Import-NSNSSMM_Config {
     param (
-        [string[]]$Configs
+        [string]$Config
     )
 
-    # if $configs is an array of paths
-    if ($Configs.Count -gt 1) {
-        foreach ($config in $Configs) {
-            Import-NSNSSMM_Config -Configs $config
-        }
-        return
-    }
-    # if $configs is empty, import all configs
-    if (-not $Configs) {
-        $Configs = Get-Item -Path './*/nsnssmm.json' | ForEach-Object {
-            Import-NSNSSMM_Config -Configs $_.Directory.Name
-        }
-    }
-    Write-Host "Importing NSNSSMM Config: $Configs"
+    Write-Host "Importing NSNSSMM Config: $Config"
 
 
-    $config_path = Get-Item -Path "./$Configs/nsnssmm.json"
-    $config = Get-Content -Path $config_path | ConvertFrom-Json
+    $config_path = Get-Item -Path "./$Config/nsnssmm.json"
+    $config_content = Get-Content -Path $config_path | ConvertFrom-Json
 
-    $windowsService = Get-Service -Name $config.Name -ErrorAction SilentlyContinue
+    $windowsService = Get-Service -Name $config_content.Name -ErrorAction SilentlyContinue
 
     if (-not $windowsService) {
-        Write-Host "Creating service: $($config.Name)"
+        Write-Host "Creating service: $($config_content.Name)"
 
         $nssm_args = @(
-            'install', $config.Name, $config.Application
+            'install', $config_content.Name, $config_content.Application
         )
         & $nssm_file @nssm_args
     }
 
-    foreach ($key in $config.PSObject.Properties.Name) {
+    foreach ($key in $config_content.PSObject.Properties.Name) {
         if ($key -notin @('Application', 'Name')) {
-            Write-Host "Setting $key to $($config.$key)"
-            & $nssm_file 'set', $config.Name, $key, $config.$key
+            Write-Host "Setting $key to $($config_content.$key)"
+            & $nssm_file 'set', $config_content.Name, $key, $config_content.$key
         }
     }
 
-    Write-Host "Starting service: $($config.Name)"
-    Start-Service -Name $config.Name
+    Write-Host "Starting service: $($config_content.Name)"
+    Start-Service -Name $config_content.Name
 }
 
 function Reset-NSNSSMM_Config {
     param (
-        [string[]]$Configs
+        [string]$Config
     )
-    # if $configs is an array of paths
-    if ($Configs.Count -gt 1) {
-        foreach ($config in $Configs) {
-            Reset-NSNSSMM_Config -Configs $config
-        }
-        return
-    }
-    # if $configs is empty, import all configs
-    if (-not $Configs) {
-        Get-Item -Path './*/nsnssmm.json' | ForEach-Object {
-            Reset-NSNSSMM_Config -Configs $_.Directory.Name
-        }
-    }
 
-    Write-Host "Resetting NSNSSMM Config: $Configs"
+    Write-Host "Resetting NSNSSMM Config: $Config"
 
 
-    $config_path = Get-Item "$Configs/nsnssmm.json" | Select-Object -ExpandProperty FullName
+    $config_path = Get-Item "$Config/nsnssmm.json" | Select-Object -ExpandProperty FullName
     $service_name = Get-Item -Path $config_path |
         Select-Object -ExpandProperty DirectoryName |
             Split-Path -Leaf
@@ -288,7 +298,7 @@ function Reset-NSNSSMM_Config {
         'remove', $service_name, 'confirm'
     )
     & $nssm_file @nssm_args
-    Import-NSNSSMM_Config -Config $Configs
+    Import-NSNSSMM_Config -Config $Config
 }
 
 function New-NSNSSMM_Service {
@@ -328,10 +338,6 @@ function New-NSNSSMM_Service {
     Start-Service -Name $ServiceName
 }
 
-$configs = @()
-$configs += $Import
-$configs += $Export
-$configs += $Reset
 
 Write-Host "NSNSSMM Mode: $mode"
 Write-Host '-----------------------------------'
@@ -340,13 +346,19 @@ Write-Host "Configs: $configs"
 
 switch ($mode) {
     'Import' {
-        Import-NSNSSMM_Config -Configs $Import
+        foreach ($target in $Targets) {
+            Import-NSNSSMM_Config -Config $target
+        }
     }
     'Export' {
-        Export-NSNSSMM_Config -Configs $Export
+        foreach ($target in $Targets) {
+            Export-NSNSSMM_Config -Config $target
+        }
     }
     'Reset' {
-        Reset-NSNSSMM_Config -Configs $Reset
+        foreach ($target in $Targets) {
+            Reset-NSNSSMM_Config -Config $target
+        }
     }
     'New' {
         $new_service_args = @{
@@ -364,7 +376,7 @@ switch ($mode) {
         )
         & $nssm_file @nssm_args
 
-        Export-NSNSSMM_Config -Configs $Edit
+        Export-NSNSSMM_Config -Config $Edit
     }
 
     default {
