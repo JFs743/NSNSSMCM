@@ -27,8 +27,7 @@
 .PARAMETER Edit
     Opens the nssm configuration GUI for the specified service. Requires the service name to be specified.
     Only one service name can be specified with this parameter.
-    After closing the GUI, the user is prompted to press Enter to continue, at which point the script will export
-    the updated configuration to the corresponding JSON file.
+    After closing the GUI, the configuration is automatically exported to ./<service_name>/nsnssmm.json.
 
 .PARAMETER New
     Creates a new NSSM-managed service with the specified parameters and exports its configuration
@@ -239,6 +238,11 @@ function Import-NSNSSMM_Config {
 
     if (-not $windowsService) {
         Write-Host "Creating service: $($config.Name)"
+
+        $nssm_args = @(
+            'install', $config.Name, $config.Application
+        )
+        & $nssm_file @nssm_args
     }
 
     foreach ($key in $config.PSObject.Properties.Name) {
@@ -360,8 +364,7 @@ switch ($mode) {
         )
         & $nssm_file @nssm_args
 
-        Read-Host -Prompt "Press Enter to continue after closing the NSSM GUI"
-        Export-NSNSSMM_Config -Configs $Edit
+            Export-NSNSSMM_Config -Configs $Edit
     }
 
     default {
