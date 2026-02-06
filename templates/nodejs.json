@@ -1,0 +1,11 @@
+{
+    "Application": "C:\\Program Files\\nodejs\\node.exe",
+    "AppParameters": "myapp.js",
+    "AppDirectory": "C:\\InstalledServices\\MyService",
+    "AppPriority": "NORMAL_PRIORITY_CLASS",
+    "DisplayName": "MyService",
+    "ObjectName": "LocalSystem",
+    "Name": "MyService",
+    "Start": "SERVICE_AUTO_START",
+    "Type": "SERVICE_WIN32_OWN_PROCESS"
+}

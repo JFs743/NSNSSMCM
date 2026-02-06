@@ -1,0 +1,13 @@
+{
+    "AppStdoutShareMode": "3",
+    "AppStdoutCreationDisposition": "2",
+    "AppStdoutFlagsAndAttributes": "128",
+    "AppStderrShareMode": "3",
+    "AppStderrCreationDisposition": "2",
+    "AppStderrFlagsAndAttributes": "128",
+    "AppRotateFiles": "1",
+    "AppRotateOnline": "1",
+    "AppRotateSeconds": "0",
+    "AppRotateBytes": "102400",
+    "AppRotateBytesHigh": "0"
+}
