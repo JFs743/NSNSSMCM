@@ -1,7 +1,7 @@
-# NSNSSMM Templates
+# NSNSSMCM Templates
 
-These templates are premade examples of working configurations for various applications.
+These templates are pre-made examples of working configurations for various applications.
 
-Note that not all settings are used and you **WILL HAVE** to make changes to the paths and rename the files to `nsnssmm.json`.
+Note that not all settings are used and you **WILL HAVE** to make changes to the paths and rename the files to `nsnssmcm.json`.
 
 Some templates are only features to add to existing templates, those are named "_\<feature\>.json"

@@ -6,7 +6,6 @@
         "esbenp.prettier-vscode",
         "gruntfuggly.todo-tree",
         "jgclark.vscode-todo-highlight",
-        "ms-vscode.azure-account",
         "ms-vscode.azure-repos",
         "ms-vscode.powershell",
         "ms-vscode.test-adapter-converter",
@@ -16,7 +15,10 @@
         "pspester.pester-test",
         "tylerleonhardt.vscode-inline-values-powershell",
         "usernamehw.errorlens",
+    ],
+    "unwantedRecommendations": [
+        "ms-vscode.azure-account",
         "visualstudioexptteam.intellicode-api-usage-examples",
-        "visualstudioexptteam.vscodeintellicode"
-    ]
+        "visualstudioexptteam.vscodeintellicode",
+    ],
 }
